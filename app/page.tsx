@@ -1,94 +1,194 @@
-import Image from 'next/image'
+'use client';
+
+import { useEffect, useState } from 'react'
 import styles from './page.module.css'
+import axios from 'axios';
 
 export default function Home() {
+
+  const [alunos, setAlunos] = useState([]);
+  const [cursos, setCursos] = useState([]);
+  const [curso, setCurso] = useState(<li style={{display: "none"}}></li>);
+  const [autores, setAutores] = useState([]);
+  const [ultimoCursoMatriculado, setUltimoCursoMatriculado] = useState(<li style={{display: "none"}}></li>);
+  const [msgError, setMsgError] = useState();
+
+
+  async function getAlunos() {
+    try {
+      const response = await axios.get("http://localhost:3000/alunos", { headers: { "Access-Control-Allow-Origin": "*" } });
+      const lisAlunos = response.data.map((x: any) => <li key={x.id}>{JSON.stringify(x)}</li>)
+      setAlunos(lisAlunos);
+    }
+    catch {
+      setAlunos([]);
+    }
+  }
+
+  async function getCursos() {
+    try {
+      const response = await axios.get("http://localhost:3000/cursos", { headers: { "Access-Control-Allow-Origin": "*" } });
+      const lisCursos = response.data.map((x: any) => <li key={x.id}>{JSON.stringify(x)}</li>)
+      setCursos(lisCursos);
+    }
+    catch {
+      setCursos([]);
+    }
+  }
+
+  async function getCurso() {
+    try {
+      const response = await axios.get("http://localhost:3000/cursos/"+(document.querySelector('#cursoById') as HTMLInputElement)?.value, { headers: { "Access-Control-Allow-Origin": "*" } });
+      const liCurso = <li key={response.data.id}>{JSON.stringify(response.data)}</li>
+      setCurso(liCurso);
+    }
+    catch {
+      setCurso(<li style={{display: "none"}}></li>);
+    }
+  }
+
+  async function getAutores() {
+    try {
+      const response = await axios.get("http://localhost:3000/autores", { headers: { "Access-Control-Allow-Origin": "*" } });
+      const lisAutores = response.data.map((x: any) => <li key={x.id}>{JSON.stringify(x)}</li>)
+      setAutores(lisAutores);
+    }
+    catch {
+      setAutores([]);
+    }
+  }
+
+  async function postAluno() {
+    let data: Object = {
+      "nome": (document.querySelector('#alunoNome') as HTMLInputElement)?.value,
+      "email": (document.querySelector('#alunoEmail') as HTMLInputElement)?.value,
+      "idade": (document.querySelector('#alunoIdade') as HTMLInputElement)?.value,
+    }
+
+    try {
+      await axios.post("http://localhost:3000/alunos", data, { headers: { "Access-Control-Allow-Origin": "*" } });
+      getAlunos();
+    }
+    catch (e: any) {
+      setMsgError(e.response.data.message);
+    }
+  }
+
+  async function postAutor() {
+    let data: Object = {
+      "nome": (document.querySelector('#autorNome') as HTMLInputElement)?.value,
+      "email": (document.querySelector('#autorEmail') as HTMLInputElement)?.value,
+      "idade": (document.querySelector('#autorIdade') as HTMLInputElement)?.value,
+    }
+
+    try {
+      await axios.post("http://localhost:3000/autores", data, { headers: { "Access-Control-Allow-Origin": "*" } });
+      getAutores();
+    }
+    catch (e: any) {
+      setMsgError(e.response.data.message);
+    }
+  }
+
+  async function postCurso() {
+    let data: Object = {
+      "nome": (document.querySelector('#cursoNome') as HTMLInputElement)?.value,
+      "descricao": (document.querySelector('#cursoDescricao') as HTMLInputElement)?.value,
+      "cargaHoraria": (document.querySelector('#cursoCargaHoraria') as HTMLInputElement)?.value,
+      "autorId": (document.querySelector('#autorId') as HTMLInputElement)?.value,
+    }
+
+    try {
+      await axios.post("http://localhost:3000/cursos", data, { headers: { "Access-Control-Allow-Origin": "*" } });
+      getCursos();
+    }
+    catch (e: any) {
+      setMsgError(e.response.data.message);
+    }
+  }
+
+  async function matricularAluno() {
+    let data: any = {
+      cursoId: (document.querySelector('#cursoId') as HTMLInputElement)?.value,
+      alunoId: (document.querySelector('#alunoId') as HTMLInputElement)?.value,
+    }
+
+    try {
+      const response = await axios.post("http://localhost:3000/cursos/"+data.cursoId+"/matricular/"+data.alunoId, {}, { headers: { "Access-Control-Allow-Origin": "*" } });
+      setUltimoCursoMatriculado( <li>{JSON.stringify(response.statusText)}</li> )
+    }
+    catch (e: any) {
+      setMsgError(e.response.data.message);
+    }
+  }
+
+  useEffect(() => {
+    getAlunos();
+    getCursos();
+    getAutores();
+  }, []);
+
   return (
     <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+      {msgError}
+      <br></br>
+      <br></br>
+      <br></br>
+      <div>
+        <input id='alunoNome' placeholder='Nome' type='text'></input>
+        <input id='alunoEmail' placeholder='Email' type='text'></input>
+        <input id='alunoIdade' placeholder='Idade' type='number'></input>
+        <button onClick={postAluno}> Cadastrar aluno</button>
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+        <ul>
+          {alunos}
+        </ul>
 
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
+        <hr></hr>
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
+        <input id='autorNome' placeholder='Nome' type='text'></input>
+        <input id='autorEmail' placeholder='Email' type='text'></input>
+        <input id='autorIdade' placeholder='Idade' type='text'></input>
+        <button onClick={postAutor}> Cadastrar autor</button>
 
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore the Next.js 13 playground.</p>
-        </a>
+        <ul>
+          {autores}
+        </ul>
 
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+        <hr></hr>
+
+        <input id='cursoNome' placeholder='Nome' type='text'></input>
+        <input id='cursoDescricao' placeholder='Descricao' type='text'></input>
+        <input id='cursoCargaHoraria' placeholder='Carga Horária' type='number'></input>
+        <input id='autorId' placeholder='Id do autor' type='text'></input>
+        <button onClick={postCurso}> Cadastrar curso</button>
+
+        <ul>
+          {cursos}
+        </ul>
+
+        <hr></hr>
+
+        <input id='cursoId' placeholder='Id do Curso' type='text'></input>
+        <input id='alunoId' placeholder='Id do Aluno' type='text'></input>
+        <button onClick={matricularAluno}> Matricular Aluno</button>
+
+        <ul>
+          {ultimoCursoMatriculado}
+        </ul>
+
+        <hr></hr>
+
+        <input id='cursoById' placeholder='Id do Curso' type='text'></input>
+        <button onClick={getCurso}> Encontar Curso</button>
+
+        <ul>
+          {curso}
+        </ul>
+
+        <hr></hr>
+
+
       </div>
     </main>
   )
